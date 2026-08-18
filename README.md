@@ -1,4 +1,4 @@
-# ⚽ Scout Engine
+#  Scout Engine
 
 Scout Engine is a data-driven football (soccer) scouting tool. A Python/pandas/scikit-learn
 pipeline turns raw player statistics into ranked recommendations, and a static HTML dashboard
@@ -20,11 +20,11 @@ Given a pool of player statistics, Scout Engine:
 
 | | |
 |---|---|
-| 🎯 **Position/age/minutes filtering** | Narrow the player pool to ST, FW, LW, RW, or AM, by max age and minimum minutes played. |
-| 🧩 **KMeans clustering** | Groups forwards into 5 statistical archetypes. |
-| 📐 **Cosine similarity fit scoring** | Ranks players against a target profile. |
-| 📊 **In-notebook visualizations** | Bar charts and radar charts via matplotlib. |
-| 🖥️ **Static dashboard** | Four themed HTML pages, powered by Chart.js, reading directly from the exported JSON. |
+|  **Position/age/minutes filtering** | Narrow the player pool to ST, FW, LW, RW, or AM, by max age and minimum minutes played. |
+|  **KMeans clustering** | Groups forwards into 5 statistical archetypes. |
+|  **Cosine similarity fit scoring** | Ranks players against a target profile. |
+|  **In-notebook visualizations** | Bar charts and radar charts via matplotlib. |
+|  **Static dashboard** | Four themed HTML pages, powered by Chart.js, reading directly from the exported JSON. |
 
 ## Project structure
 

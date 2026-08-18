@@ -73,7 +73,3 @@ then visit `http://localhost:8000`.
 - [ ] Configurable target profile from the UI instead of the notebook
 - [ ] Additional positions beyond forwards (midfielders, defenders)
 - [ ] Multi-season comparison view
-
-## License
-
-No license specified yet — all rights reserved by default until one is added.

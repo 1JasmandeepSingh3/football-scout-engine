@@ -1,0 +1,877 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Scout Engine — Forward Recommendations</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,300;0,400;0,600;0,700;1,300;1,400&family=Barlow:wght@300;400;500&family=Share+Tech+Mono&display=swap" rel="stylesheet" />
+ 
+  <style>
+    :root {
+      --bg:           #060d1b;
+      --bg-panel:     #0a1628;
+      --bg-card:      #0d1e35;
+      --border:       rgba(0, 255, 65, 0.18);
+      --border-dim:   rgba(255,255,255,0.07);
+      --green:        #00ff41;
+      --green-dim:    rgba(0,255,65,0.55);
+      --green-glow:   rgba(0,255,65,0.12);
+      --white:        #ffffff;
+      --grey:         #8a9bb5;
+      --grey-dim:     #3d5068;
+      --font-display: 'Barlow Condensed', sans-serif;
+      --font-body:    'Barlow', sans-serif;
+      --font-mono:    'Share Tech Mono', monospace;
+    }
+ 
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+ 
+    html { scroll-behavior: smooth; }
+ 
+    body {
+      background-color: var(--bg);
+      color: var(--white);
+      font-family: var(--font-body);
+      font-size: 14px;
+      line-height: 1.5;
+      min-height: 100vh;
+      background-image:
+        radial-gradient(ellipse 80% 60% at 70% 20%, rgba(0,80,255,0.08) 0%, transparent 60%),
+        radial-gradient(circle at 1px 1px, rgba(255,255,255,0.03) 1px, transparent 0);
+      background-size: 100% 100%, 28px 28px;
+    }
+ 
+    /* ── NAV ── */
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 40px;
+      height: 56px;
+      background: rgba(6,13,27,0.92);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border-dim);
+    }
+ 
+    .nav-logo {
+      font-family: var(--font-display);
+      font-weight: 400;
+      font-size: 20px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
+    .nav-logo span { color: var(--green); font-weight: 300; letter-spacing: 0.18em; }
+ 
+    .nav-right {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+ 
+    .nav-season {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      color: var(--grey);
+    }
+    .nav-season span {
+      color: var(--green);
+      margin-left: 6px;
+    }
+ 
+    .nav-back {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--grey);
+      text-decoration: none;
+      border: 1px solid var(--border-dim);
+      padding: 6px 14px;
+      transition: color .2s, border-color .2s;
+      white-space: nowrap;
+    }
+    .nav-back:hover {
+      color: var(--green);
+      border-color: var(--border);
+    }
+ 
+    /* ── PAGE HEADER ── */
+    .page-header {
+      padding: 52px 40px 36px;
+      border-bottom: 1px solid var(--border-dim);
+    }
+    .page-eyebrow {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.18em;
+      color: var(--green);
+      text-transform: uppercase;
+      margin-bottom: 14px;
+    }
+    .page-title {
+      font-family: var(--font-display);
+      font-weight: 300;
+      font-style: italic;
+      font-size: clamp(38px, 5.5vw, 64px);
+      text-transform: uppercase;
+      line-height: 0.95;
+      letter-spacing: 0.06em;
+    }
+    .page-title .accent { color: var(--green); font-weight: 400; }
+    .page-title .muted  { color: var(--grey-dim); }
+ 
+    /* ── MAIN LAYOUT ── */
+    .main {
+      display: grid;
+      grid-template-columns: 1fr 360px;
+      gap: 0;
+      min-height: calc(100vh - 56px - 160px);
+    }
+ 
+    /* ── LEFT PANEL ── */
+    .left-panel {
+      padding: 32px 40px;
+      border-right: 1px solid var(--border-dim);
+    }
+ 
+    .selector-row {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 32px;
+    }
+    .selector-label {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.16em;
+      color: var(--green);
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+ 
+    .club-select {
+      appearance: none;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      color: var(--white);
+      font-family: var(--font-mono);
+      font-size: 12px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 10px 44px 10px 16px;
+      cursor: pointer;
+      outline: none;
+      flex: 1;
+      max-width: 340px;
+      transition: border-color .2s, box-shadow .2s;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%2300ff41'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 16px center;
+    }
+    .club-select:focus {
+      border-color: var(--green);
+      box-shadow: 0 0 0 2px var(--green-glow);
+    }
+    .club-select option { background: var(--bg-card); }
+ 
+    .run-btn {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--bg);
+      background: var(--green);
+      border: none;
+      padding: 10px 20px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: opacity .2s, transform .1s;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+    .run-btn:hover { opacity: 0.85; }
+    .run-btn:active { transform: scale(0.97); }
+    .run-btn:disabled {
+      background: var(--grey-dim);
+      color: var(--bg-card);
+      cursor: not-allowed;
+      opacity: 0.6;
+    }
+ 
+    .run-btn.running {
+      background: var(--bg-card);
+      color: var(--green);
+      border: 1px solid var(--border);
+      animation: scanning .8s step-end infinite;
+    }
+    @keyframes scanning {
+      0%,100% { opacity: 1; }
+      50%      { opacity: 0.4; }
+    }
+    .section-label {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.18em;
+      color: var(--grey);
+      text-transform: uppercase;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border-dim);
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .section-label::before {
+      content: '';
+      width: 6px; height: 6px;
+      background: var(--green);
+      display: inline-block;
+    }
+ 
+    .cards-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+ 
+    .player-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-dim);
+      padding: 18px 20px;
+      cursor: pointer;
+      transition: border-color .2s, background .2s, transform .15s;
+      position: relative;
+      overflow: hidden;
+    }
+    .player-card::before {
+      content: '';
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      width: 3px;
+      background: var(--green);
+      transform: scaleY(0);
+      transform-origin: bottom;
+      transition: transform .25s ease;
+    }
+    .player-card:hover,
+    .player-card.selected {
+      border-color: var(--border);
+      background: rgba(0,255,65,0.04);
+    }
+    .player-card:hover::before,
+    .player-card.selected::before {
+      transform: scaleY(1);
+    }
+ 
+    .card-rank {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--green);
+      letter-spacing: 0.1em;
+      margin-bottom: 6px;
+    }
+    .card-name {
+      font-family: var(--font-display);
+      font-weight: 800;
+      font-size: 22px;
+      text-transform: uppercase;
+      letter-spacing: 0.02em;
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+    .card-meta {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--grey);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 14px;
+    }
+    .card-stats {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+    .stat-item {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .stat-val {
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 18px;
+      line-height: 1;
+      color: var(--white);
+    }
+    .stat-val.highlight { color: var(--green); }
+    .stat-key {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      color: var(--grey);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+ 
+    .similarity-bar-wrap {
+      margin-top: 14px;
+    }
+    .similarity-label {
+      display: flex;
+      justify-content: space-between;
+      font-family: var(--font-mono);
+      font-size: 9px;
+      color: var(--grey);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: 4px;
+    }
+    .similarity-label span:last-child { color: var(--green); }
+    .similarity-track {
+      height: 2px;
+      background: var(--border-dim);
+      position: relative;
+    }
+    .similarity-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--green-dim), var(--green));
+      transition: width .6s cubic-bezier(.4,0,.2,1);
+    }
+ 
+    .empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 64px 0;
+      gap: 12px;
+    }
+    .empty-state-icon {
+      font-family: var(--font-mono);
+      font-size: 32px;
+      color: var(--grey-dim);
+    }
+    .empty-state-title {
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      color: var(--grey);
+    }
+    .empty-state-sub {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--grey-dim);
+      letter-spacing: 0.1em;
+      text-align: center;
+      text-transform: uppercase;
+    }
+ 
+    /* ── RIGHT PANEL ── */
+    .right-panel {
+      padding: 32px 28px;
+      display: flex;
+      flex-direction: column;
+      gap: 28px;
+    }
+ 
+    .radar-section { }
+    .radar-header {
+      margin-bottom: 16px;
+    }
+    .radar-title {
+      font-family: var(--font-display);
+      font-weight: 800;
+      font-size: 16px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 4px;
+    }
+    .radar-sub {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      color: var(--grey);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+ 
+    .radar-legend {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 12px;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-family: var(--font-mono);
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--grey);
+    }
+    .legend-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+    }
+    .legend-dot.player { background: var(--green); }
+    .legend-dot.club   { background: var(--grey-dim); }
+ 
+    #radar-canvas {
+      width: 100%;
+      aspect-ratio: 1;
+      display: block;
+    }
+ 
+    .breakdown-section { }
+    .breakdown-title {
+      font-family: var(--font-display);
+      font-weight: 800;
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 14px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--border-dim);
+    }
+    .breakdown-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .breakdown-row {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .breakdown-meta {
+      display: flex;
+      justify-content: space-between;
+      font-family: var(--font-mono);
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    .breakdown-key { color: var(--grey); }
+    .breakdown-vals { color: var(--white); display: flex; gap: 12px; }
+    .breakdown-vals .pval { color: var(--green); }
+    .breakdown-vals .cval { color: var(--grey-dim); }
+    .breakdown-track {
+      height: 2px;
+      background: var(--border-dim);
+      position: relative;
+    }
+    .breakdown-bar-player {
+      position: absolute;
+      left: 0; top: 0;
+      height: 100%;
+      background: var(--green);
+      transition: width .5s ease;
+    }
+    .breakdown-bar-club {
+      position: absolute;
+      left: 0; top: 0;
+      height: 100%;
+      background: var(--grey-dim);
+      transition: width .5s ease;
+    }
+ 
+    .cluster-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 14px;
+      border: 1px solid var(--border);
+      background: var(--green-glow);
+      font-family: var(--font-mono);
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      color: var(--green);
+    }
+    .cluster-badge .dot {
+      width: 6px; height: 6px;
+      background: var(--green);
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%,100% { opacity: 1; }
+      50%      { opacity: 0.3; }
+    }
+ 
+    .loading-overlay {
+      position: fixed;
+      inset: 0;
+      background: var(--bg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 999;
+      transition: opacity .4s;
+    }
+    .loading-overlay.hidden { opacity: 0; pointer-events: none; }
+    .loader-text {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.2em;
+      color: var(--green);
+      text-transform: uppercase;
+      animation: blink 1s step-end infinite;
+    }
+    @keyframes blink {
+      0%,100% { opacity: 1; }
+      50%      { opacity: 0; }
+    }
+ 
+    .fade-in { animation: fadeIn .4s ease both; }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: none; }
+    }
+ 
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--grey-dim); border-radius: 2px; }
+  </style>
+</head>
+<body>
+ 
+  <div class="loading-overlay" id="loader">
+    <span class="loader-text">INITIALISING SCOUT ENGINE_</span>
+  </div>
+ 
+  <nav>
+    <div class="nav-logo">SCOUT <span>ENGINE</span></div>
+    <div class="nav-right">
+      <div class="nav-season">SEASON <span>2023–24</span></div>
+      <a href="index.html" class="nav-back">← BACK TO HOME</a>
+    </div>
+  </nav>
+ 
+  <header class="page-header fade-in">
+    <div class="page-eyebrow">ML-POWERED SCOUTING</div>
+    <h1 class="page-title">
+      FORWARD<br>
+      <span class="accent">RECOMMEN</span><span class="muted">DATIONS</span>
+    </h1>
+  </header>
+ 
+  <div class="main fade-in">
+ 
+    <section class="left-panel">
+ 
+      <div class="selector-row">
+        <span class="selector-label">SELECT CLUB</span>
+        <select class="club-select" id="club-select">
+          <option value="">— CHOOSE A CLUB —</option>
+        </select>
+        <button class="run-btn" id="run-btn" disabled>RUN →</button>
+      </div>
+ 
+      <div class="section-label">TOP 3 RECOMMENDATIONS</div>
+ 
+      <div class="cards-list" id="cards-container">
+        <div class="empty-state">
+          <div class="empty-state-icon">⬡</div>
+          <div class="empty-state-title">No Club Selected</div>
+          <div class="empty-state-sub">Choose a club above to<br>load transfer targets</div>
+        </div>
+      </div>
+ 
+    </section>
+ 
+    <aside class="right-panel">
+ 
+      <div class="radar-section">
+        <div class="radar-header">
+          <div class="section-label">PLAYER VS CLUB PROFILE</div>
+          <div class="radar-legend">
+            <div class="legend-item"><span class="legend-dot player"></span>PLAYER</div>
+            <div class="legend-item"><span class="legend-dot club"></span>CLUB AVG</div>
+          </div>
+        </div>
+        <canvas id="radar-canvas" width="300" height="300"></canvas>
+      </div>
+ 
+      <div class="breakdown-section" id="breakdown-section">
+        <div class="breakdown-title">PLAYER BREAKDOWN</div>
+        <div class="breakdown-list" id="breakdown-list">
+          <div style="font-family:var(--font-mono);font-size:10px;color:var(--grey);text-transform:uppercase;letter-spacing:.1em;text-align:center;padding:20px 0;">
+            CLICK A PLAYER CARD TO COMPARE
+          </div>
+        </div>
+      </div>
+ 
+    </aside>
+  </div>
+ 
+  <script>
+    const FEATURES     = ['Goals/90','Assists/90','xG/90','Shots/90','Key Passes','Goal Contrib','Shot Conv','Creativity','Atk Volume'];
+    const FEATURE_KEYS = ['goals_p90','assists_p90','xg_p90','shots_p90','kp_p90','goal_contrib_p90','shot_conv','creativity_p90','attack_vol_p90'];
+    const MAX_VALS     = [1.0, 0.7, 0.05, 6.0, 5.0, 1.2, 0.4, 5.5, 8.0];
+
+    let rawData      = null;
+    let pendingClub  = null;
+    let selectedClub = null;
+    let selectedPlayer = null;
+
+    async function loadData() {
+      try {
+        const res = await fetch('scout_data.json');
+        if (!res.ok) throw new Error('fetch failed');
+        rawData = await res.json();
+      } catch {
+        rawData = null;
+        console.warn('Could not load scout_data.json — serve via python -m http.server');
+      }
+      init();
+    }
+
+    function buildClubList(data) {
+      if (!data) return [];
+      return Object.keys(data.recommendations)
+        .sort()
+        .map(clubName => ({
+          name:    clubName,
+          profile: (data.club_profiles[clubName] || {}).features || {},
+          players: data.recommendations[clubName].map(p => ({
+            name:             p.player,
+            club:             p.team,
+            league:           p.league,
+            nation:           p.nation,
+            age:              p.age,
+            pos:              p.pos,
+            cluster:          p.cluster_name,
+            similarity:       p.fit_score,
+            goals_p90:        p.goals_p90,
+            assists_p90:      p.assists_p90,
+            xg_p90:           p.xg_p90,
+            shots_p90:        p.shots_p90,
+            kp_p90:           p.kp_p90,
+            goal_contrib_p90: p.goal_contrib_p90,
+            shot_conv:        p.shot_conv,
+            creativity_p90:   p.creativity_p90,
+            attack_vol_p90:   p.attack_vol_p90,
+            minutes:          p.minutes,
+          }))
+        }));
+    }
+
+    function init() {
+      const clubs = buildClubList(rawData);
+      const sel   = document.getElementById('club-select');
+      const btn   = document.getElementById('run-btn');
+
+      clubs.forEach(c => {
+        const opt = document.createElement('option');
+        opt.value = c.name;
+        opt.textContent = c.name.toUpperCase();
+        sel.appendChild(opt);
+      });
+
+      if (!rawData) {
+        document.getElementById('cards-container').innerHTML = `
+          <div class="empty-state">
+            <div class="empty-state-icon">&#9888;</div>
+            <div class="empty-state-title">Data Not Found</div>
+            <div class="empty-state-sub">Place scout_data.json in the same folder<br>and serve via: python -m http.server</div>
+          </div>`;
+      }
+
+      sel.addEventListener('change', e => {
+        pendingClub = e.target.value || null;
+        btn.disabled = !pendingClub;
+      });
+
+      btn.addEventListener('click', () => {
+        if (!pendingClub || !rawData) return;
+        btn.disabled = true;
+        btn.classList.add('running');
+        btn.textContent = 'SCANNING_';
+        setTimeout(() => {
+          btn.classList.remove('running');
+          btn.textContent = 'RUN \u2192';
+          btn.disabled = false;
+          const clubs = buildClubList(rawData);
+          selectedClub   = clubs.find(c => c.name === pendingClub) || null;
+          selectedPlayer = null;
+          renderCards();
+          drawRadar(null);
+          renderBreakdown(null);
+        }, 800);
+      });
+
+      document.getElementById('loader').classList.add('hidden');
+    }
+
+    function renderCards() {
+      const container = document.getElementById('cards-container');
+      if (!selectedClub || !selectedClub.players.length) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-state-icon">&#11041;</div>
+            <div class="empty-state-title">No Data</div>
+            <div class="empty-state-sub">No recommendations found for this club</div>
+          </div>`;
+        return;
+      }
+
+      // ── FIX: limit to top 3 by fit score ──
+      const sorted = [...selectedClub.players]
+        .sort((a, b) => b.similarity - a.similarity)
+        .slice(0, 3);
+
+      container.innerHTML = '';
+      sorted.forEach((p, i) => {
+        const card = document.createElement('div');
+        card.className = 'player-card';
+        card.innerHTML = `
+          <div class="card-rank">REC #${i+1} &middot; ${p.cluster}</div>
+          <div class="card-name">${p.name}</div>
+          <div class="card-meta">${p.club} &middot; ${p.league} &middot; Age ${p.age} &middot; ${p.pos} &middot; ${p.nation}</div>
+          <div class="card-stats">
+            <div class="stat-item">
+              <span class="stat-val highlight">${(p.similarity*100).toFixed(1)}%</span>
+              <span class="stat-key">Fit Score</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-val">${p.goals_p90.toFixed(2)}</span>
+              <span class="stat-key">Goals/90</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-val">${p.goal_contrib_p90.toFixed(2)}</span>
+              <span class="stat-key">G+A/90</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-val">${p.minutes.toLocaleString()}</span>
+              <span class="stat-key">Mins</span>
+            </div>
+          </div>
+          <div class="similarity-bar-wrap">
+            <div class="similarity-label">
+              <span>FIT SCORE</span>
+              <span>${(p.similarity*100).toFixed(1)}%</span>
+            </div>
+            <div class="similarity-track">
+              <div class="similarity-fill" style="width:${Math.min(p.similarity*100,100)}%"></div>
+            </div>
+          </div>`;
+        card.addEventListener('click', () => {
+          document.querySelectorAll('.player-card').forEach(c => c.classList.remove('selected'));
+          card.classList.add('selected');
+          selectedPlayer = p;
+          drawRadar(p);
+          renderBreakdown(p);
+        });
+        container.appendChild(card);
+      });
+    }
+
+    function drawRadar(player) {
+      const canvas = document.getElementById('radar-canvas');
+      const ctx    = canvas.getContext('2d');
+      const W = canvas.width, H = canvas.height;
+      ctx.clearRect(0, 0, W, H);
+
+      const cx = W/2, cy = H/2, R = Math.min(W,H)*0.36;
+      const N  = FEATURES.length;
+      const angle = i => (Math.PI*2*i/N) - Math.PI/2;
+
+      [0.25, 0.5, 0.75, 1.0].forEach(r => {
+        ctx.beginPath();
+        for (let i=0; i<N; i++) {
+          const a = angle(i);
+          const x = cx + Math.cos(a)*R*r, y = cy + Math.sin(a)*R*r;
+          i===0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
+        }
+        ctx.closePath();
+        ctx.strokeStyle = r===1.0 ? 'rgba(0,255,65,0.2)' : 'rgba(255,255,255,0.05)';
+        ctx.lineWidth = 1; ctx.stroke();
+      });
+
+      for (let i=0; i<N; i++) {
+        const a = angle(i);
+        ctx.beginPath(); ctx.moveTo(cx, cy);
+        ctx.lineTo(cx+Math.cos(a)*R, cy+Math.sin(a)*R);
+        ctx.strokeStyle = 'rgba(255,255,255,0.07)'; ctx.lineWidth = 1; ctx.stroke();
+      }
+
+      function plotShape(vals, color, fill) {
+        ctx.beginPath();
+        vals.forEach((v, i) => {
+          const norm = Math.min(v / MAX_VALS[i], 1);
+          const a = angle(i);
+          const x = cx + Math.cos(a)*R*norm, y = cy + Math.sin(a)*R*norm;
+          i===0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
+        });
+        ctx.closePath();
+        if (fill) { ctx.fillStyle = fill; ctx.fill(); }
+        ctx.strokeStyle = color; ctx.lineWidth = 1.5; ctx.stroke();
+      }
+
+      if (selectedClub && Object.keys(selectedClub.profile).length) {
+        const clubVals = FEATURE_KEYS.map(k => selectedClub.profile[k] || 0);
+        plotShape(clubVals, 'rgba(138,155,181,0.6)', 'rgba(138,155,181,0.07)');
+      }
+
+      if (player) {
+        const playerVals = FEATURE_KEYS.map(k => player[k] || 0);
+        plotShape(playerVals, '#00ff41', 'rgba(0,255,65,0.10)');
+      }
+
+      ctx.font = "bold 8px 'Share Tech Mono', monospace";
+      ctx.fillStyle = 'rgba(138,155,181,0.8)';
+      ctx.textAlign = 'center';
+      for (let i=0; i<N; i++) {
+        const a = angle(i);
+        const lx = cx + Math.cos(a)*(R+20), ly = cy + Math.sin(a)*(R+20);
+        ctx.fillText(FEATURES[i].toUpperCase(), lx, ly+3);
+      }
+    }
+
+    function renderBreakdown(player) {
+      const list = document.getElementById('breakdown-list');
+      if (!player || !selectedClub) {
+        list.innerHTML = `<div style="font-family:var(--font-mono);font-size:10px;color:var(--grey);text-transform:uppercase;letter-spacing:.1em;text-align:center;padding:20px 0;">CLICK A PLAYER CARD TO COMPARE</div>`;
+        return;
+      }
+      list.innerHTML = FEATURES.map((label, i) => {
+        const key = FEATURE_KEYS[i];
+        const pv  = player[key] || 0;
+        const cv  = selectedClub.profile[key] || 0;
+        const mx  = MAX_VALS[i];
+        const pw  = Math.min((pv/mx)*100, 100).toFixed(0);
+        const cw  = Math.min((cv/mx)*100, 100).toFixed(0);
+        const fmt = v => v < 0.1 ? v.toFixed(3) : v.toFixed(2);
+        return `
+          <div class="breakdown-row">
+            <div class="breakdown-meta">
+              <span class="breakdown-key">${label}</span>
+              <span class="breakdown-vals">
+                <span class="pval">${fmt(pv)}</span>
+                <span class="cval">${fmt(cv)}</span>
+              </span>
+            </div>
+            <div class="breakdown-track" style="height:3px">
+              <div class="breakdown-bar-club"   style="width:${cw}%"></div>
+              <div class="breakdown-bar-player" style="width:${pw}%;background:var(--green);opacity:.85"></div>
+            </div>
+          </div>`;
+      }).join('');
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      drawRadar(null);
+      loadData();
+    });
+  </script>
+</body>
+</html>

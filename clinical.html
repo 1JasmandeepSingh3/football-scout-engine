@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Scout Engine — Clinical Efficiency</title>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&family=Barlow+Condensed:wght@400;600;700;800;900&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+:root{
+  --bg:#080d1a;--surface:#0a1020;--card:#0e1628;--border:#1a2a42;
+  --accent:#39ff14;--accent2:#00e676;--red:#ff3d5a;--gold:#f5c518;
+  --text:#e8f5e9;--muted:#5a7a5a;--dim:#1e3040;
+  --font-head:'Barlow Condensed',sans-serif;--font-body:'Barlow',sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{
+  background-color:#080d1a;
+  background-image:
+    radial-gradient(ellipse 80% 50% at 50% 0%,rgba(30,60,120,.55) 0%,transparent 70%),
+    radial-gradient(ellipse 60% 40% at 20% 60%,rgba(20,50,100,.3) 0%,transparent 70%),
+    radial-gradient(ellipse 60% 40% at 80% 100%,rgba(20,50,100,.3) 0%,transparent 70%),
+    linear-gradient(rgba(57,255,20,.04) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(57,255,20,.04) 1px,transparent 1px);
+  background-size:auto,auto,auto,40px 40px,40px 40px;
+  background-attachment:fixed;
+  color:var(--text);font-family:var(--font-body);min-height:100vh;
+}
+
+/* TOPBAR */
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:0 2rem;height:56px;background:#060c18;border-bottom:2px solid var(--accent);position:sticky;top:0;z-index:100}
+.logo{font-family:'Rajdhani',sans-serif;font-size:1.6rem;font-weight:700;letter-spacing:.18em;text-transform:uppercase}
+.logo span{color:var(--accent)}
+.topbar-meta{font-family:var(--font-head);font-size:.65rem;font-weight:700;letter-spacing:.15em;color:var(--muted);text-transform:uppercase}
+.back-btn{display:flex;align-items:center;gap:.5rem;font-family:var(--font-head);font-size:.8rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);text-decoration:none;border:1px solid var(--dim);padding:6px 14px;transition:color .2s,border-color .2s}
+.back-btn:hover{color:var(--text);border-color:var(--muted)}
+
+/* HERO */
+.hero{max-width:1300px;margin:0 auto;padding:2.5rem 2rem 1.5rem}
+.hero-label{font-family:var(--font-head);font-size:.62rem;font-weight:800;letter-spacing:.25em;text-transform:uppercase;color:var(--accent);margin-bottom:.5rem}
+.hero-title{font-family:var(--font-head);font-size:3rem;font-weight:900;text-transform:uppercase;letter-spacing:.03em;line-height:1;margin-bottom:.75rem}
+.hero-title span{color:var(--accent)}
+.hero-desc{font-size:.9rem;color:var(--muted);max-width:560px;line-height:1.6}
+
+/* FILTER BAR */
+.filterbar{background:var(--surface);border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:.85rem 2rem;display:flex;align-items:center;gap:1rem;flex-wrap:wrap}
+.f-label{font-family:var(--font-head);font-size:.58rem;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:var(--accent)}
+.f-select{background:var(--card);border:1px solid var(--dim);color:var(--text);font-family:var(--font-head);font-size:.85rem;font-weight:700;padding:.4rem .9rem;appearance:none;outline:none;cursor:pointer;transition:border-color .2s}
+.f-select:focus{border-color:var(--accent)}
+.range-wrap{display:flex;align-items:center;gap:.5rem}
+input[type=range]{accent-color:var(--accent);width:90px;cursor:pointer}
+.range-val{font-family:var(--font-head);font-size:.7rem;font-weight:800;color:var(--accent);min-width:36px}
+.f-divider{width:1px;height:20px;background:var(--border)}
+.player-count{font-family:var(--font-head);font-size:.65rem;font-weight:700;color:var(--muted);letter-spacing:.1em;margin-left:auto}
+
+/* MAIN */
+.main{max-width:1300px;margin:0 auto;padding:1.5rem 2rem 3rem;display:flex;flex-direction:column;gap:1.5rem}
+
+/* PANEL */
+.panel{background:var(--card);border:1px solid var(--border);padding:1.25rem;position:relative;overflow:hidden}
+.panel::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--accent),var(--accent2))}
+.panel-title{font-family:var(--font-head);font-size:.7rem;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin-bottom:.3rem;display:flex;align-items:center;gap:.4rem}
+.panel-title::before{content:'▪'}
+.panel-sub{font-family:var(--font-head);font-size:.65rem;color:var(--muted);margin-bottom:1rem}
+.chart-wrap{position:relative}
+
+/* TWO COL */
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem}
+
+/* SCATTER */
+.quad-labels{display:flex;justify-content:space-between;font-family:var(--font-head);font-size:.58rem;color:var(--dim);margin-top:.5rem}
+
+/* SPOTLIGHT */
+#spotlight{transition:opacity .3s}
+#spotlight.hidden{opacity:.3;pointer-events:none}
+.spot-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:1rem}
+.spot-name{font-family:var(--font-head);font-size:1.5rem;font-weight:900;color:var(--text);line-height:1}
+.spot-meta{font-family:var(--font-head);font-size:.68rem;color:var(--muted);margin-top:.2rem}
+.spot-badge{font-family:var(--font-head);font-size:.58rem;font-weight:700;padding:.2rem .6rem;border:1px solid;letter-spacing:.08em;text-transform:uppercase}
+.badge-elite{color:var(--gold);border-color:var(--gold);background:rgba(245,197,24,.06)}
+.badge-creative{color:var(--accent);border-color:var(--accent);background:rgba(57,255,20,.05)}
+.badge-pressing{color:#ff8c42;border-color:#ff8c42;background:rgba(255,140,66,.05)}
+.badge-wide{color:#64b5f6;border-color:#64b5f6;background:rgba(100,181,246,.05)}
+.badge-box{color:#ce93d8;border-color:#ce93d8;background:rgba(206,147,216,.05)}
+
+.gauge-ring{position:relative;width:110px;height:110px;margin:0 auto .75rem}
+.gauge-ring svg{width:100%;height:100%;transform:rotate(-90deg)}
+.gauge-bg{fill:none;stroke:var(--dim);stroke-width:10}
+.gauge-fill{fill:none;stroke-width:10;stroke-linecap:round;transition:stroke-dashoffset .6s cubic-bezier(.4,0,.2,1)}
+.gauge-label{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center}
+.gauge-num{font-family:var(--font-head);font-size:1.3rem;font-weight:900;color:var(--text)}
+.gauge-sub{font-family:var(--font-head);font-size:.52rem;color:var(--muted)}
+
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:.6rem}
+.stat-card{background:var(--surface);border:1px solid var(--border);padding:.65rem}
+.sc-label{font-family:var(--font-head);font-size:.52rem;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:.2rem}
+.sc-num{font-family:var(--font-head);font-size:1.2rem;font-weight:800;color:var(--text)}
+.sc-diff{font-family:var(--font-head);font-size:.6rem;font-weight:700}
+.sc-diff.pos{color:var(--accent)}.sc-diff.neg{color:var(--red)}
+
+.xg-bar-wrap{margin-top:.75rem;background:var(--surface);border:1px solid var(--border);padding:.75rem}
+.xg-bar-label{font-family:var(--font-head);font-size:.52rem;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:.4rem}
+.xg-track{height:5px;background:rgba(255,61,90,.15);overflow:hidden}
+.xg-fill{height:100%;transition:width .6s ease}
+.xg-nums{display:flex;justify-content:space-between;margin-top:.35rem;font-family:var(--font-head);font-size:.6rem}
+
+/* LEADERBOARD */
+.lb-header{display:grid;grid-template-columns:28px 1fr 70px 70px 70px 70px 70px;gap:.4rem;padding:.4rem .6rem;font-family:var(--font-head);font-size:.55rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border)}
+.lb-row{display:grid;grid-template-columns:28px 1fr 70px 70px 70px 70px 70px;gap:.4rem;padding:.45rem .6rem;border-bottom:1px solid rgba(26,42,66,.5);cursor:pointer;transition:background .15s;align-items:center}
+.lb-row:hover{background:rgba(57,255,20,.03)}
+.lb-row.selected{background:rgba(57,255,20,.07);border-left:2px solid var(--accent)}
+.lb-rank{font-family:var(--font-head);font-weight:800;font-size:.8rem;color:var(--dim);text-align:center}
+.lb-rank.r1{color:var(--gold)}.lb-rank.r3{color:var(--accent)}
+.lb-name{font-family:var(--font-head);font-weight:700;font-size:.85rem;color:var(--text)}
+.lb-team{font-family:var(--font-head);font-size:.62rem;color:var(--muted)}
+.lb-val{font-family:var(--font-head);font-size:.7rem;text-align:right}
+.lb-val.hi{color:var(--accent)}.lb-val.lo{color:var(--muted)}
+.lb-bar-wrap{height:3px;background:var(--dim);border-radius:2px;overflow:hidden;margin-top:2px}
+.lb-bar{height:100%;background:var(--accent);border-radius:2px}
+.lb-scroll{max-height:400px;overflow-y:auto}
+.lb-scroll::-webkit-scrollbar{width:3px}
+.lb-scroll::-webkit-scrollbar-thumb{background:var(--border)}
+
+/* LOADING */
+.loading{display:flex;align-items:center;justify-content:center;min-height:300px;font-family:var(--font-head);font-size:.85rem;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--dim)}
+
+@media(max-width:900px){
+  .two-col{grid-template-columns:1fr}
+  .lb-header,.lb-row{grid-template-columns:24px 1fr 60px 60px 60px}
+  .lb-header>*:nth-child(n+6),.lb-row>*:nth-child(n+6){display:none}
+}
+@media(max-width:500px){.main{padding:1rem}.hero{padding:1.5rem 1rem 1rem}}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="logo">Scout <span>Engine</span></div>
+  <div class="topbar-meta" id="topbar-meta">Season 2023–24 · Clinicality Module</div>
+  <a href="index.html" class="back-btn">← Back to Home</a>
+</header>
+
+<section class="hero">
+  <div class="hero-label">ML-Powered Analysis · Top 5 Leagues</div>
+  <div class="hero-title">Clinical <span>Efficiency</span></div>
+  <div class="hero-desc">Shot conversion · xG delta · Finishing index. Goals minus xG per 90 reveals who consistently outperforms expected goals — the cold-blooded finishers that beat the model.</div>
+</section>
+
+<section class="filterbar">
+  <span class="f-label">League</span>
+  <select class="f-select" id="f-league">
+    <option value="">All Leagues</option>
+    <option>ENG-Premier League</option>
+    <option>ESP-La Liga</option>
+    <option>FRA-Ligue 1</option>
+    <option>GER-Bundesliga</option>
+    <option>ITA-Serie A</option>
+  </select>
+  <span class="f-label">Position</span>
+  <select class="f-select" id="f-pos">
+    <option value="">All Positions</option>
+    <option>ST</option><option>FW</option><option>LW</option><option>RW</option><option>AM</option>
+  </select>
+  <span class="f-label">Cluster</span>
+  <select class="f-select" id="f-cluster">
+    <option value="">All Types</option>
+    <option>Elite Finishers</option>
+    <option>Creative Forwards</option>
+    <option>Wide Attackers</option>
+    <option>Pressing Forwards</option>
+    <option>Box-to-Box Attackers</option>
+  </select>
+  <div class="f-divider"></div>
+  <span class="f-label">Min Conv</span>
+  <div class="range-wrap">
+    <input type="range" id="r-conv" min="0" max="40" value="0" step="1"/>
+    <span class="range-val" id="conv-val">0%</span>
+  </div>
+  <span class="f-label">Min G/90</span>
+  <div class="range-wrap">
+    <input type="range" id="r-goals" min="0" max="90" value="0" step="1"/>
+    <span class="range-val" id="goals-val">0.00</span>
+  </div>
+  <div class="player-count" id="player-count">Loading…</div>
+</section>
+
+<div class="main" id="main-content">
+  <div class="loading">Loading scout data…</div>
+</div>
+
+<script>
+const CLUSTER_COLORS = {
+  'Elite Finishers':'#f5c518','Creative Forwards':'#39ff14',
+  'Wide Attackers':'#64b5f6','Pressing Forwards':'#ff8c42','Box-to-Box Attackers':'#ce93d8'
+};
+const CLUSTER_BADGE = {
+  'Elite Finishers':'elite','Creative Forwards':'creative',
+  'Wide Attackers':'wide','Pressing Forwards':'pressing','Box-to-Box Attackers':'box'
+};
+const LEAGUE_SHORT = {
+  'ENG-Premier League':'PL','ESP-La Liga':'La Liga',
+  'FRA-Ligue 1':'Ligue 1','GER-Bundesliga':'Bundesliga','ITA-Serie A':'Serie A'
+};
+
+let RAW = [], filtered = [], selectedPlayer = null, charts = {};
+
+Chart.defaults.color = '#5a7a5a';
+Chart.defaults.font.family = "'Barlow Condensed'";
+Chart.defaults.font.size = 10;
+const GRID = { color:'rgba(26,42,66,.6)' };
+const TIP  = { backgroundColor:'#0e1628', borderColor:'#1a2a42', borderWidth:1, titleColor:'#39ff14', bodyColor:'#e8f5e9' };
+
+// ── LOAD ──────────────────────────────────────────────
+async function loadData() {
+  const res  = await fetch('scout_data.json');
+  const data = await res.json();
+
+  // Build unique player pool from all recommendations
+  const seen = new Set();
+  data.recommendations && Object.values(data.recommendations).forEach(recs => {
+    recs.forEach(p => {
+      const key = p.player + '|' + p.team;
+      if (!seen.has(key)) {
+        seen.add(key);
+        RAW.push(p);
+      }
+    });
+  });
+
+  // Compute CI score for each player
+  const allConv  = RAW.map(p => p.shot_conv);
+  const allGoals = RAW.map(p => p.goals_p90);
+  const minC = Math.min(...allConv), maxC = Math.max(...allConv);
+  const minG = Math.min(...allGoals), maxG = Math.max(...allGoals);
+  const norm = (v, mn, mx) => mx === mn ? 0 : (v - mn) / (mx - mn);
+
+  RAW.forEach(p => {
+    const xd = p.goals_p90 - p.xg_p90;
+    p.ci        = Math.min(1, Math.max(0, norm(p.shot_conv,minC,maxC)*0.4 + norm(p.goals_p90,minG,maxG)*0.35 + norm(xd,-0.03,0.9)*0.25));
+    p.xg_delta  = xd;
+  });
+
+  // Update topbar meta from JSON
+  if (data.meta) {
+    document.getElementById('topbar-meta').textContent =
+      (data.meta.season || '') + ' · Clinicality Module';
+  }
+
+  // Build main layout now data is ready
+  buildLayout();
+  applyFilters();
+
+  // Auto-select top CI player
+  setTimeout(() => {
+    const top = [...RAW].sort((a,b) => b.ci - a.ci)[0];
+    if (top) selectPlayer(top);
+  }, 300);
+}
+
+// ── BUILD LAYOUT ──────────────────────────────────────
+function buildLayout() {
+  document.getElementById('main-content').innerHTML = `
+    <div class="two-col">
+      <div class="panel">
+        <div class="panel-title">Killer Instinct Matrix</div>
+        <div class="panel-sub">Goals/90 vs Shot Conversion · bubble size = shots/90</div>
+        <div class="chart-wrap" style="height:300px"><canvas id="c-scatter"></canvas></div>
+        <div class="quad-labels"><span>← Low Conversion</span><span>High Conversion →</span></div>
+      </div>
+      <div class="panel" id="spotlight">
+        <div class="panel-title">Player Spotlight</div>
+        <div class="panel-sub">Click any player in the leaderboard or scatter</div>
+        <div class="spot-header">
+          <div>
+            <div class="spot-name" id="s-name">—</div>
+            <div class="spot-meta" id="s-meta">Select a player</div>
+          </div>
+          <div class="spot-badge" id="s-badge" style="display:none"></div>
+        </div>
+        <div style="display:flex;gap:1.25rem;align-items:flex-start">
+          <div>
+            <div class="gauge-ring">
+              <svg viewBox="0 0 100 100">
+                <circle class="gauge-bg" cx="50" cy="50" r="42"/>
+                <circle class="gauge-fill" id="g-fill" cx="50" cy="50" r="42"
+                  stroke-dasharray="263.9" stroke-dashoffset="263.9" stroke="var(--accent)"/>
+              </svg>
+              <div class="gauge-label">
+                <div class="gauge-num" id="g-num">–</div>
+                <div class="gauge-sub">Clinical</div>
+              </div>
+            </div>
+            <div style="text-align:center;font-family:var(--font-head);font-size:.5rem;color:var(--muted);letter-spacing:.08em;text-transform:uppercase">CI Score</div>
+          </div>
+          <div class="stat-grid" style="flex:1">
+            <div class="stat-card"><div class="sc-label">Shot Conv</div><div class="sc-num" id="s-conv">—</div><div class="sc-diff" id="s-conv-d">—</div></div>
+            <div class="stat-card"><div class="sc-label">Goals/90</div><div class="sc-num" id="s-g90">—</div><div class="sc-diff" id="s-g90-d">—</div></div>
+            <div class="stat-card"><div class="sc-label">Shots/90</div><div class="sc-num" id="s-sh90">—</div><div class="sc-diff" id="s-sh90-d">—</div></div>
+            <div class="stat-card"><div class="sc-label">xG/90</div><div class="sc-num" id="s-xg90">—</div><div class="sc-diff" id="s-xg90-d">—</div></div>
+          </div>
+        </div>
+        <div class="xg-bar-wrap">
+          <div class="xg-bar-label">xG Overperformance (Goals vs xG delta)</div>
+          <div class="xg-track"><div class="xg-fill" id="xg-fill" style="width:0%"></div></div>
+          <div class="xg-nums">
+            <span style="color:var(--muted)" id="xg-delta">Δ xG: —</span>
+            <span id="xg-over">—</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">xG Overperformance — Goals vs Expected</div>
+      <div class="panel-sub">Positive = outperforming xG (clinical finisher) · Negative = underperforming · Top 25 shown</div>
+      <div class="chart-wrap" style="height:280px"><canvas id="c-xgbar"></canvas></div>
+    </div>
+
+    <div class="two-col">
+      <div class="panel">
+        <div class="panel-title">Clinical Score Ranking</div>
+        <div class="panel-sub">Composite: shot conversion (40%) + goals/90 (35%) + xG delta (25%) · Top 15</div>
+        <div class="chart-wrap" style="height:280px"><canvas id="c-ciscore"></canvas></div>
+      </div>
+      <div class="panel">
+        <div class="panel-title">Goals vs xG per 90</div>
+        <div class="panel-sub">Actual goals vs expected — gap shows overperformance · Top 12</div>
+        <div class="chart-wrap" style="height:280px"><canvas id="c-compare"></canvas></div>
+      </div>
+    </div>
+
+    <div class="panel" style="padding-bottom:.5rem">
+      <div class="panel-title">Clinicality Leaderboard</div>
+      <div class="panel-sub">Sorted by CI score · click a row to populate spotlight</div>
+      <div class="lb-header">
+        <div>#</div><div>Player</div>
+        <div style="text-align:right">CI</div>
+        <div style="text-align:right">Conv</div>
+        <div style="text-align:right">Gls/90</div>
+        <div style="text-align:right">Δ xG</div>
+        <div style="text-align:right">Shots/90</div>
+      </div>
+      <div class="lb-scroll" id="lb-body"></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">League Efficiency Compare</div>
+      <div class="panel-sub">Average shot conversion rate by league</div>
+      <div class="chart-wrap" style="height:220px"><canvas id="c-league"></canvas></div>
+    </div>
+  `;
+
+  document.getElementById('spotlight').classList.add('hidden');
+}
+
+// ── FILTERS ───────────────────────────────────────────
+function applyFilters() {
+  const league  = document.getElementById('f-league').value;
+  const pos     = document.getElementById('f-pos').value;
+  const cluster = document.getElementById('f-cluster').value;
+  const minConv  = +document.getElementById('r-conv').value / 100;
+  const minGoals = +document.getElementById('r-goals').value / 100;
+
+  filtered = RAW.filter(p =>
+    (!league  || p.league       === league)  &&
+    (!pos     || p.pos          === pos)     &&
+    (!cluster || p.cluster_name === cluster) &&
+    p.shot_conv  >= minConv &&
+    p.goals_p90  >= minGoals
+  );
+
+  document.getElementById('player-count').textContent = filtered.length + ' Players';
+  renderAll();
+}
+
+['f-league','f-pos','f-cluster'].forEach(id =>
+  document.getElementById(id).addEventListener('change', applyFilters)
+);
+document.getElementById('r-conv').addEventListener('input', function() {
+  document.getElementById('conv-val').textContent = this.value + '%';
+  applyFilters();
+});
+document.getElementById('r-goals').addEventListener('input', function() {
+  document.getElementById('goals-val').textContent = (this.value / 100).toFixed(2);
+  applyFilters();
+});
+
+// ── RENDER ALL ────────────────────────────────────────
+function renderAll() {
+  renderScatter();
+  renderXGBar();
+  renderCIScore();
+  renderCompare();
+  renderLeaderboard();
+  renderLeagueBar();
+}
+
+// ── SCATTER ───────────────────────────────────────────
+function renderScatter() {
+  const datasets = {};
+  filtered.forEach(p => {
+    const cn = p.cluster_name;
+    if (!datasets[cn]) datasets[cn] = { label:cn, data:[], backgroundColor:[], borderColor:[] };
+    datasets[cn].data.push({ x:p.shot_conv, y:p.goals_p90, r:Math.max(4, p.shots_p90*1.8), _p:p });
+    const c = CLUSTER_COLORS[cn] || '#888';
+    datasets[cn].backgroundColor.push(c + '55');
+    datasets[cn].borderColor.push(c);
+  });
+  const ctx = document.getElementById('c-scatter').getContext('2d');
+  if (charts.scatter) charts.scatter.destroy();
+  charts.scatter = new Chart(ctx, {
+    type: 'bubble',
+    data: { datasets: Object.values(datasets) },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      plugins: {
+        legend: { display:true, position:'bottom', labels:{ boxWidth:8, padding:10, font:{size:9} } },
+        tooltip: { ...TIP, callbacks: { label: ctx => {
+          const p = ctx.raw._p;
+          return [ p.player+' ('+p.team+')', 'Conv: '+(p.shot_conv*100).toFixed(1)+'%  Gls/90: '+p.goals_p90, 'Shots/90: '+p.shots_p90 ];
+        }}}
+      },
+      scales: {
+        x: { title:{display:true,text:'SHOT CONVERSION',color:'#5a7a5a'}, grid:GRID, border:{color:'#1a2a42'}, ticks:{callback:v=>(v*100).toFixed(0)+'%'} },
+        y: { title:{display:true,text:'GOALS / 90',color:'#5a7a5a'}, grid:GRID, border:{color:'#1a2a42'} }
+      },
+      onClick(e, el) { if (el.length) selectPlayer(charts.scatter.data.datasets[el[0].datasetIndex].data[el[0].index]._p); }
+    }
+  });
+}
+
+// ── XG OVERPERFORMANCE BAR ────────────────────────────
+function renderXGBar() {
+  const sorted = [...filtered].sort((a,b) => b.xg_delta - a.xg_delta).slice(0,25);
+  const vals   = sorted.map(p => +p.xg_delta.toFixed(3));
+  const ctx    = document.getElementById('c-xgbar').getContext('2d');
+  if (charts.xgbar) charts.xgbar.destroy();
+  charts.xgbar = new Chart(ctx, {
+    type: 'bar',
+    data: { labels: sorted.map(p => p.player.split(' ').pop()),
+      datasets: [{ data:vals,
+        backgroundColor: vals.map(v => v>=0 ? 'rgba(57,255,20,.55)' : 'rgba(255,61,90,.55)'),
+        borderColor:     vals.map(v => v>=0 ? '#39ff14'             : '#ff3d5a'),
+        borderWidth:1, borderRadius:2 }]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      plugins: { legend:{display:false}, tooltip:{ ...TIP, callbacks:{
+        title: i => sorted[i[0].dataIndex].player,
+        label: i => 'Δ xG: '+(i.raw>0?'+':'')+i.raw.toFixed(3)
+      }}},
+      scales: {
+        x: { grid:{display:false}, border:{color:'#1a2a42'}, ticks:{font:{size:8},maxRotation:45} },
+        y: { grid:GRID, border:{color:'#1a2a42'}, ticks:{callback:v=>v>0?'+'+v.toFixed(2):v.toFixed(2)} }
+      },
+      onClick(e,el){ if(el.length) selectPlayer(sorted[el[0].index]); }
+    }
+  });
+}
+
+// ── CI SCORE RANKING ──────────────────────────────────
+function renderCIScore() {
+  const sorted = [...filtered].sort((a,b) => b.ci - a.ci).slice(0,15);
+  const max    = sorted[0]?.ci || 1;
+  const ctx    = document.getElementById('c-ciscore').getContext('2d');
+  if (charts.ciscore) charts.ciscore.destroy();
+  charts.ciscore = new Chart(ctx, {
+    type: 'bar',
+    data: { labels: sorted.map(p => p.player.split(' ').pop()),
+      datasets: [{ data: sorted.map(p => p.ci),
+        backgroundColor: sorted.map(p => p.ci===max ? 'rgba(57,255,20,.85)' : 'rgba(57,255,20,.3)'),
+        borderColor:     sorted.map(p => p.ci===max ? '#39ff14'             : 'rgba(57,255,20,.6)'),
+        borderWidth:1, borderRadius:2 }]
+    },
+    options: {
+      indexAxis:'y', responsive:true, maintainAspectRatio:false,
+      plugins: { legend:{display:false}, tooltip:{ ...TIP, callbacks:{
+        title: i => sorted[i[0].dataIndex].player,
+        label: i => ' CI: '+i.raw.toFixed(3)
+      }}},
+      scales: {
+        x: { min:0, grid:GRID, border:{color:'#1a2a42'}, ticks:{font:{size:9}} },
+        y: { grid:{display:false}, border:{color:'#1a2a42'}, ticks:{font:{size:10}} }
+      },
+      onClick(e,el){ if(el.length) selectPlayer(sorted[el[0].index]); }
+    }
+  });
+}
+
+// ── GOALS vs xG COMPARE ───────────────────────────────
+function renderCompare() {
+  const sorted = [...filtered].sort((a,b) => b.goals_p90 - a.goals_p90).slice(0,12);
+  const ctx    = document.getElementById('c-compare').getContext('2d');
+  if (charts.compare) charts.compare.destroy();
+  charts.compare = new Chart(ctx, {
+    type: 'bar',
+    data: { labels: sorted.map(p => p.player.split(' ').pop()),
+      datasets: [
+        { label:'Goals/90', data:sorted.map(p=>p.goals_p90), backgroundColor:'rgba(57,255,20,.5)',  borderColor:'#39ff14', borderWidth:1, borderRadius:2 },
+        { label:'xG/90',    data:sorted.map(p=>p.xg_p90),    backgroundColor:'rgba(255,61,90,.4)',   borderColor:'#ff3d5a', borderWidth:1, borderRadius:2 }
+      ]
+    },
+    options: {
+      indexAxis:'y', responsive:true, maintainAspectRatio:false,
+      plugins: { legend:{ display:true, position:'top', labels:{ color:'#5a7a5a', font:{size:10}, boxWidth:10, padding:12 } },
+        tooltip:{ ...TIP, callbacks:{ title: i => sorted[i[0].dataIndex].player }}
+      },
+      scales: {
+        x: { min:0, grid:GRID, border:{color:'#1a2a42'}, ticks:{font:{size:9}} },
+        y: { grid:{display:false}, border:{color:'#1a2a42'}, ticks:{font:{size:10}} }
+      }
+    }
+  });
+}
+
+// ── LEADERBOARD ───────────────────────────────────────
+function renderLeaderboard() {
+  const sorted = [...filtered].sort((a,b) => b.ci - a.ci);
+  const maxCI  = sorted[0]?.ci || 1;
+  const body   = document.getElementById('lb-body');
+  body.innerHTML = '';
+  sorted.forEach((p, i) => {
+    const row = document.createElement('div');
+    row.className = 'lb-row' + (selectedPlayer?.player===p.player && selectedPlayer?.team===p.team ? ' selected' : '');
+    row.innerHTML =
+      '<div class="lb-rank '+(i===0?'r1':i<3?'r3':'')+'">'+(i+1)+'</div>'+
+      '<div><div class="lb-name">'+p.player+'</div>'+
+      '<div class="lb-team">'+p.team+' · '+p.league.split('-')[0]+'</div>'+
+      '<div class="lb-bar-wrap"><div class="lb-bar" style="width:'+(p.ci/maxCI*100).toFixed(1)+'%"></div></div></div>'+
+      '<div class="lb-val hi">'+(p.ci*100).toFixed(1)+'</div>'+
+      '<div class="lb-val '+(p.shot_conv>0.2?'hi':'lo')+'">'+(p.shot_conv*100).toFixed(1)+'%</div>'+
+      '<div class="lb-val">'+p.goals_p90.toFixed(2)+'</div>'+
+      '<div class="lb-val '+(p.xg_delta>0?'hi':'lo')+'">'+(p.xg_delta>0?'+':'')+p.xg_delta.toFixed(3)+'</div>'+
+      '<div class="lb-val">'+p.shots_p90.toFixed(2)+'</div>';
+    row.addEventListener('click', () => selectPlayer(p));
+    body.appendChild(row);
+  });
+}
+
+// ── LEAGUE BAR ────────────────────────────────────────
+function renderLeagueBar() {
+  const leagues = ['ENG-Premier League','ESP-La Liga','FRA-Ligue 1','GER-Bundesliga','ITA-Serie A'];
+  const shorts  = ['EPL','La Liga','Ligue 1','Bundesliga','Serie A'];
+  const colors  = ['#39ff14','#64b5f6','#ff8c42','#ce93d8','#f5c518'];
+  const data    = leagues.map(l => {
+    const ps = filtered.filter(p => p.league === l);
+    return ps.length ? ps.reduce((s,p) => s+p.shot_conv, 0) / ps.length : 0;
+  });
+  const ctx = document.getElementById('c-league').getContext('2d');
+  if (charts.league) charts.league.destroy();
+  charts.league = new Chart(ctx, {
+    type: 'bar',
+    data: { labels: shorts,
+      datasets: [{ data: data.map(v => +(v*100).toFixed(2)),
+        backgroundColor: colors.map(c => c+'44'),
+        borderColor: colors, borderWidth:1, borderRadius:3 }]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:false, indexAxis:'y',
+      plugins: { legend:{display:false}, tooltip:{ ...TIP, callbacks:{ label: i=>'Avg Conv: '+i.raw.toFixed(2)+'%' }}},
+      scales: {
+        x: { grid:GRID, border:{color:'#1a2a42'}, ticks:{callback:v=>v+'%'} },
+        y: { grid:{display:false}, border:{color:'#1a2a42'} }
+      }
+    }
+  });
+}
+
+// ── PLAYER SPOTLIGHT ──────────────────────────────────
+function selectPlayer(p) {
+  selectedPlayer = p;
+  const avg = {
+    conv:  filtered.reduce((s,x)=>s+x.shot_conv,0)/filtered.length,
+    goals: filtered.reduce((s,x)=>s+x.goals_p90,0)/filtered.length,
+    shots: filtered.reduce((s,x)=>s+x.shots_p90,0)/filtered.length,
+    xg:    filtered.reduce((s,x)=>s+x.xg_p90,0)/filtered.length,
+  };
+
+  document.getElementById('s-name').textContent = p.player;
+  document.getElementById('s-meta').textContent = p.team+' · '+p.pos+' · Age '+p.age+' · '+p.league;
+
+  const badge = document.getElementById('s-badge');
+  badge.textContent = p.cluster_name.toUpperCase();
+  badge.className   = 'spot-badge badge-'+(CLUSTER_BADGE[p.cluster_name]||'');
+  badge.style.display = 'inline-block';
+
+  const fill = document.getElementById('g-fill');
+  fill.style.strokeDashoffset = 263.9 - (p.ci * 263.9);
+  fill.style.stroke = p.ci>0.7 ? '#39ff14' : p.ci>0.4 ? '#f5c518' : '#ff3d5a';
+  document.getElementById('g-num').textContent = (p.ci*100).toFixed(0);
+
+  const setS = (id, val, diff) => {
+    document.getElementById(id).textContent = val;
+    const el = document.getElementById(id+'-d');
+    el.className = 'sc-diff '+(diff>=0?'pos':'neg');
+    el.textContent = (diff>=0?'+':'')+diff.toFixed(1)+'% vs avg';
+  };
+  setS('s-conv', (p.shot_conv*100).toFixed(1)+'%', (p.shot_conv-avg.conv)/avg.conv*100);
+  setS('s-g90',  p.goals_p90.toFixed(2),            (p.goals_p90-avg.goals)/avg.goals*100);
+  setS('s-sh90', p.shots_p90.toFixed(2),            (p.shots_p90-avg.shots)/avg.shots*100);
+  setS('s-xg90', p.xg_p90.toFixed(3),              (p.xg_p90-avg.xg)/avg.xg*100);
+
+  const maxD = Math.max(...filtered.map(x=>x.xg_delta));
+  const minD = Math.min(...filtered.map(x=>x.xg_delta));
+  const fillPct = maxD>minD ? (p.xg_delta-minD)/(maxD-minD)*100 : 50;
+  document.getElementById('xg-fill').style.width = fillPct.toFixed(1)+'%';
+  document.getElementById('xg-fill').style.background = p.xg_delta>=0
+    ? 'linear-gradient(90deg,#00cc6a,#39ff14)'
+    : 'linear-gradient(90deg,#cc2240,#ff3d5a)';
+  document.getElementById('xg-delta').textContent = 'Goals/90: '+p.goals_p90.toFixed(2)+'  xG/90: '+p.xg_p90.toFixed(3);
+  const over = document.getElementById('xg-over');
+  over.textContent = 'Δ '+(p.xg_delta>0?'+':'')+p.xg_delta.toFixed(3);
+  over.style.color = p.xg_delta>=0 ? 'var(--accent)' : 'var(--red)';
+
+  document.getElementById('spotlight').classList.remove('hidden');
+  renderLeaderboard();
+}
+
+// ── BOOT ──────────────────────────────────────────────
+loadData().catch(() => {
+  document.getElementById('main-content').innerHTML =
+    '<div class="loading" style="color:var(--accent)">Could not load scout_data.json<br><span style="color:var(--muted);font-size:.7rem;letter-spacing:.1em">Run: python -m http.server</span></div>';
+});
+</script>
+</body>
+</html>

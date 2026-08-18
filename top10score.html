@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Scout Engine — Top 10 Goal Scorers</title>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&family=Barlow+Condensed:wght@400;600;700;800;900&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg:        #080d1a;
+    --surface:   #0a1020;
+    --card:      #0e1628;
+    --border:    #1a2a42;
+    --accent:    #39ff14;
+    --accent2:   #00e676;
+    --text:      #e8f5e9;
+    --muted:     #5a7a5a;
+    --dim:       #1e3040;
+    --font-head: 'Barlow Condensed', sans-serif;
+    --font-body: 'Barlow', sans-serif;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background-color: #080d1a;
+    background-image:
+      radial-gradient(ellipse 80% 50% at 50% 0%, rgba(30,60,120,0.55) 0%, transparent 70%),
+      radial-gradient(ellipse 60% 40% at 20% 60%, rgba(20,50,100,0.3) 0%, transparent 70%),
+      radial-gradient(ellipse 60% 40% at 80% 100%, rgba(20,50,100,0.3) 0%, transparent 70%),
+      linear-gradient(rgba(57,255,20,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(57,255,20,0.04) 1px, transparent 1px);
+    background-size: auto, auto, auto, 40px 40px, 40px 40px;
+    background-attachment: fixed;
+    color: var(--text);
+    font-family: var(--font-body);
+    min-height: 100vh;
+  }
+
+  /* TOPBAR */
+  .topbar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 2rem; height: 56px;
+    background: #060c18; border-bottom: 2px solid var(--accent);
+    position: sticky; top: 0; z-index: 100;
+  }
+  .logo { font-family: 'Rajdhani', sans-serif; font-size: 1.6rem; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; }
+  .logo span { color: var(--accent); }
+  .back-btn {
+    display: flex; align-items: center; gap: 0.5rem;
+    font-family: var(--font-head); font-size: 0.8rem; font-weight: 700;
+    letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--muted); text-decoration: none;
+    border: 1px solid var(--dim); padding: 6px 14px;
+    transition: color 0.2s, border-color 0.2s;
+  }
+  .back-btn:hover { color: var(--text); border-color: var(--muted); }
+
+  /* HERO */
+  .hero {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 2.5rem 2rem 1.5rem;
+  }
+  .hero-label {
+    font-family: var(--font-head); font-size: 0.62rem; font-weight: 800;
+    letter-spacing: 0.25em; text-transform: uppercase; color: var(--accent);
+    margin-bottom: 0.5rem;
+  }
+  .hero-title {
+    font-family: var(--font-head); font-size: 3rem; font-weight: 900;
+    text-transform: uppercase; letter-spacing: 0.03em; line-height: 1;
+    margin-bottom: 0.75rem;
+  }
+  .hero-title span { color: var(--accent); }
+  .hero-desc {
+    font-family: var(--font-body); font-size: 0.9rem; color: var(--muted);
+    max-width: 520px; line-height: 1.6;
+  }
+
+  /* MAIN CARD */
+  .main {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 0 2rem 3rem;
+  }
+
+  .chart-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    padding: 2rem;
+    position: relative;
+    overflow: hidden;
+  }
+  .chart-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+  }
+
+  .chart-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+  .chart-meta { }
+  .chart-season {
+    font-family: var(--font-head); font-size: 0.6rem; font-weight: 800;
+    letter-spacing: 0.2em; text-transform: uppercase; color: var(--muted);
+    margin-bottom: 0.3rem;
+  }
+  .chart-title {
+    font-family: var(--font-head); font-size: 1.4rem; font-weight: 900;
+    text-transform: uppercase; letter-spacing: 0.05em; color: var(--text);
+  }
+  .chart-subtitle {
+    font-family: var(--font-body); font-size: 0.8rem; color: var(--muted);
+    margin-top: 0.25rem;
+  }
+
+  .legend {
+    display: flex; align-items: center; gap: 0.5rem;
+    font-family: var(--font-head); font-size: 0.65rem; font-weight: 700;
+    letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted);
+  }
+  .legend-dot {
+    width: 10px; height: 10px; border-radius: 2px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+  }
+
+  .chart-wrap {
+    position: relative;
+    height: 420px;
+  }
+
+  /* STATS ROW */
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    margin-top: 1px;
+    background: var(--border);
+  }
+  .stat-box {
+    background: var(--card);
+    padding: 1.25rem 1.5rem;
+    text-align: center;
+  }
+  .stat-val {
+    font-family: var(--font-head); font-size: 2rem; font-weight: 900;
+    color: var(--accent); line-height: 1;
+  }
+  .stat-lbl {
+    font-family: var(--font-head); font-size: 0.6rem; font-weight: 700;
+    letter-spacing: 0.18em; text-transform: uppercase; color: var(--muted);
+    margin-top: 0.25rem;
+  }
+
+  /* PLAYER TABLE */
+  .table-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-top: none;
+  }
+  .table-head {
+    padding: 1.25rem 2rem 0.75rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .table-head-label {
+    font-family: var(--font-head); font-size: 0.6rem; font-weight: 800;
+    letter-spacing: 0.22em; text-transform: uppercase; color: var(--muted);
+    display: flex; align-items: center; gap: 0.75rem;
+  }
+  .table-head-label::after { content:''; flex:1; height:1px; background:var(--border); }
+
+  table.players { width: 100%; border-collapse: collapse; }
+  table.players thead tr { background: rgba(0,0,0,0.2); border-bottom: 1px solid var(--border); }
+  table.players th {
+    font-family: var(--font-head); font-size: 0.58rem; font-weight: 800;
+    letter-spacing: 0.15em; text-transform: uppercase; color: var(--muted);
+    padding: 0.6rem 1.5rem; text-align: left;
+  }
+  table.players th.num { text-align: right; }
+  table.players tbody tr { border-bottom: 1px solid var(--border); transition: background 0.15s; }
+  table.players tbody tr:last-child { border-bottom: none; }
+  table.players tbody tr:hover { background: rgba(57,255,20,0.03); }
+  table.players td {
+    padding: 0.65rem 1.5rem;
+    font-family: var(--font-head); font-size: 0.9rem; font-weight: 600;
+    letter-spacing: 0.02em; color: var(--text);
+  }
+  table.players td.num { text-align: right; color: var(--muted); }
+  table.players td.goals-val {
+    text-align: right; font-weight: 900; color: var(--accent); font-size: 1rem;
+  }
+  .rank-cell { color: var(--dim); font-size: 0.75rem; font-weight: 800; }
+  .rank-cell.top { color: var(--accent); }
+  .league-pill {
+    display: inline-block;
+    font-family: var(--font-head); font-size: 0.52rem; font-weight: 700;
+    letter-spacing: 0.08em; text-transform: uppercase;
+    border: 1px solid var(--dim); color: var(--muted);
+    padding: 1px 6px; margin-left: 0.5rem; vertical-align: middle;
+  }
+
+  @keyframes fadeUp { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
+  .chart-card { animation: fadeUp 0.4s ease both; }
+  .table-card { animation: fadeUp 0.4s ease 0.1s both; }
+
+  @media (max-width: 600px) {
+    .hero { padding: 1.5rem 1rem 1rem; }
+    .main { padding: 0 1rem 2rem; }
+    .hero-title { font-size: 2rem; }
+    .chart-wrap { height: 320px; }
+    .stats-row { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="logo">Scout <span>Engine</span></div>
+  <a href="index.html" class="back-btn">← Back to Home</a>
+</header>
+
+<section class="hero">
+  <div class="hero-label">2023–24 Season · Top 5 Leagues</div>
+  <div class="hero-title">Top 10 <span>Goal</span> Scorers</div>
+  <div class="hero-desc">Highest goals-per-90 forwards across Europe's top 5 leagues. Minimum 900 minutes played, age ≤ 27.</div>
+</section>
+
+<div class="main">
+
+  <div class="chart-card">
+    <div class="chart-header">
+      <div class="chart-meta">
+        <div class="chart-season" id="seasonLabel">2023–24 Season</div>
+        <div class="chart-title">Goals per 90 Minutes</div>
+        <div class="chart-subtitle">Ranked by goals scored per 90 minutes played</div>
+      </div>
+      <div class="legend">
+        <div class="legend-dot"></div>
+        Goals / 90
+      </div>
+    </div>
+    <div class="chart-wrap">
+      <canvas id="barChart"></canvas>
+    </div>
+  </div>
+
+  <div class="stats-row" id="statsRow"></div>
+
+  <div class="table-card">
+    <div class="table-head">
+      <div class="table-head-label">Full Breakdown</div>
+    </div>
+    <table class="players">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Player</th>
+          <th>Club</th>
+          <th>Pos</th>
+          <th class="num">Age</th>
+          <th class="num">Mins</th>
+          <th class="num">Gls/90</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+  </div>
+
+</div>
+
+<script>
+const LEAGUE_SHORT = {
+  'ENG-Premier League': 'PL',
+  'ESP-La Liga':        'La Liga',
+  'FRA-Ligue 1':        'Ligue 1',
+  'GER-Bundesliga':     'Bundesliga',
+  'ITA-Serie A':        'Serie A',
+};
+
+async function loadData() {
+  const res  = await fetch('scout_data.json');
+  const data = await res.json();
+  const top  = data.top_scorers.slice(0, 10);
+
+  document.getElementById('seasonLabel').textContent = data.meta.season + ' Season';
+
+  renderChart(top);
+  renderStats(top, data);
+  renderTable(top);
+}
+
+function renderChart(players) {
+  const labels = players.map(p => p.player.split(' ').pop()); // last name
+  const values = players.map(p => p.goals_p90);
+  const max    = Math.max(...values);
+
+  const ctx = document.getElementById('barChart').getContext('2d');
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        data: values,
+        backgroundColor: values.map(v =>
+          v === max ? 'rgba(57,255,20,0.85)' : 'rgba(57,255,20,0.35)'
+        ),
+        borderColor: values.map(v =>
+          v === max ? '#39ff14' : 'rgba(57,255,20,0.6)'
+        ),
+        borderWidth: 1,
+        borderRadius: 2,
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#0e1628',
+          borderColor: '#1a2a42',
+          borderWidth: 1,
+          titleColor: '#39ff14',
+          bodyColor: '#e8f5e9',
+          titleFont: { family: "'Barlow Condensed'", size: 13, weight: '700' },
+          bodyFont:  { family: "'Barlow Condensed'", size: 12 },
+          callbacks: {
+            title: (items) => {
+              const p = players[items[0].dataIndex];
+              return p.player.toUpperCase();
+            },
+            label: (item) => ` ${item.raw.toFixed(2)} goals per 90`
+          }
+        }
+      },
+      scales: {
+        x: {
+          min: 0,
+          max: Math.ceil(max * 10) / 10 + 0.1,
+          grid: { color: 'rgba(255,255,255,0.04)' },
+          ticks: {
+            color: '#5a7a5a',
+            font: { family: "'Barlow Condensed'", size: 11, weight: '700' },
+            callback: v => v.toFixed(1)
+          },
+          border: { color: 'rgba(255,255,255,0.06)' }
+        },
+        y: {
+          grid: { display: false },
+          ticks: {
+            color: '#e8f5e9',
+            font: { family: "'Barlow Condensed'", size: 12, weight: '700' },
+          },
+          border: { color: 'rgba(255,255,255,0.06)' }
+        }
+      }
+    }
+  });
+}
+
+function renderStats(top, data) {
+  const best    = top[0];
+  const avgGoals = (top.reduce((s,p) => s + p.goals_p90, 0) / top.length).toFixed(2);
+  const leagues  = [...new Set(top.map(p => p.league))].length;
+
+  document.getElementById('statsRow').innerHTML = `
+    <div class="stat-box">
+      <div class="stat-val">${best.goals_p90.toFixed(2)}</div>
+      <div class="stat-lbl">Top Goals / 90</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-val">${avgGoals}</div>
+      <div class="stat-lbl">Avg Goals / 90</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-val">${leagues}</div>
+      <div class="stat-lbl">Leagues Represented</div>
+    </div>
+  `;
+}
+
+function renderTable(players) {
+  const tbody = document.getElementById('tableBody');
+  tbody.innerHTML = players.map((p, i) => `
+    <tr>
+      <td><span class="rank-cell ${i < 3 ? 'top' : ''}">${i + 1}</span></td>
+      <td>
+        ${p.player}
+        <span class="league-pill">${LEAGUE_SHORT[p.league] || p.league}</span>
+      </td>
+      <td>${p.team}</td>
+      <td>${p.pos}</td>
+      <td class="num">${p.age}</td>
+      <td class="num">${p.minutes.toLocaleString()}</td>
+      <td class="goals-val">${p.goals_p90.toFixed(2)}</td>
+    </tr>
+  `).join('');
+}
+
+loadData().catch(() => {
+  document.getElementById('barChart').parentElement.innerHTML =
+    `<div style="display:flex;align-items:center;justify-content:center;height:100%;font-family:'Barlow Condensed',sans-serif;font-size:0.85rem;letter-spacing:0.15em;text-transform:uppercase;color:#1e3040;">
+      Could not load scout_data.json — run: python -m http.server
+    </div>`;
+});
+</script>
+</body>
+</html>

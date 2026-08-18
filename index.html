@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Scout Engine</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --navy:      #0B1F4B;
+    --lime:      #32CD32;
+    --bg-start:  #0a0a0a;
+    --bg-end:    #0b1a3e;
+    --glow-col:  #0d2e14;
+    --white:     #ffffff;
+    --off:       #e8ddd0;
+    --muted:     #7a6a6a;
+    --card-bg:   rgba(255,255,255,0.03);
+    --card-border: rgba(30,60,160,0.22);
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: linear-gradient(135deg, #080808 0%, #08112a 60%, #0b1a3e 100%);
+    color: var(--off);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  .bg { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
+  .bg-noise {
+    position: absolute; inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
+    opacity: 0.6;
+  }
+  .bg-grid {
+    position: absolute; inset: 0;
+    background-image:
+      linear-gradient(rgba(30,60,160,0.07) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(30,60,160,0.07) 1px, transparent 1px);
+    background-size: 48px 48px;
+  }
+  .bg-glow-top {
+    position: absolute; top: -120px; left: 50%; transform: translateX(-50%);
+    width: 700px; height: 400px;
+    background: radial-gradient(ellipse, rgba(10,30,100,0.4) 0%, transparent 70%);
+  }
+  .bg-glow-left {
+    position: absolute; bottom: 20%; left: -100px;
+    width: 400px; height: 400px;
+    background: radial-gradient(ellipse, rgba(8,20,80,0.25) 0%, transparent 70%);
+  }
+  .bg-glow-right {
+    position: absolute; top: 30%; right: -80px;
+    width: 320px; height: 320px;
+    background: radial-gradient(ellipse, rgba(50,205,50,0.05) 0%, transparent 70%);
+  }
+
+  .page { position: relative; z-index: 1; min-height: 100vh; display: flex; flex-direction: column; }
+
+  .topbar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 18px 40px;
+    border-bottom: 1px solid rgba(30,60,160,0.2);
+    animation: fadeDown 0.6s ease both;
+  }
+  .logo { font-family: 'Bebas Neue', sans-serif; font-size: 22px; letter-spacing: 3px; color: var(--lime); }
+  .logo span { color: rgba(255,255,255,0.45); }
+  .topbar-right { display: flex; align-items: center; gap: 20px; }
+  .season-badge {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px; letter-spacing: 2px;
+    color: rgba(80,140,255,0.8);
+    border: 1px solid rgba(30,60,180,0.28);
+    padding: 4px 10px; border-radius: 2px;
+  }
+  .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--lime); animation: pulse 2s infinite; }
+
+  .hero { padding: 60px 40px 40px; max-width: 780px; animation: fadeUp 0.7s ease 0.1s both; }
+  .hero-eyebrow {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px; letter-spacing: 3px;
+    color: rgba(80,140,255,0.7);
+    margin-bottom: 18px;
+  }
+  .hero-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(52px, 8vw, 88px);
+    line-height: 0.95; color: var(--white); margin-bottom: 22px;
+  }
+  .hero-title .accent { color: var(--lime); }
+  .hero-title .dim { color: rgba(255,255,255,0.25); }
+  .hero-desc { font-size: 14px; line-height: 1.75; color: rgba(232,221,208,0.45); max-width: 520px; margin-bottom: 28px; }
+  .hero-pills { display: flex; gap: 8px; flex-wrap: wrap; }
+  .pill {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px; letter-spacing: 1px;
+    padding: 5px 12px; border-radius: 2px;
+    border: 1px solid rgba(40,80,200,0.35);
+    color: rgba(232,221,208,0.4);
+    transition: border-color 0.2s, color 0.2s;
+  }
+  .pill:hover { border-color: rgba(40,80,200,0.7); color: rgba(232,221,208,0.7); }
+
+  .divider { display: flex; align-items: center; gap: 16px; padding: 0 40px; margin: 8px 0 32px; animation: fadeUp 0.7s ease 0.2s both; }
+  .divider-line { flex: 1; height: 1px; background: rgba(30,60,160,0.2); }
+  .divider-label { font-family: 'DM Mono', monospace; font-size: 9px; letter-spacing: 3px; color: rgba(80,140,255,0.4); }
+
+  .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; padding: 0 40px 60px; animation: fadeUp 0.7s ease 0.3s both; }
+
+  .card {
+    position: relative; background: var(--card-bg); border: 1px solid var(--card-border);
+    border-radius: 4px; padding: 28px 24px 24px; cursor: pointer; overflow: hidden;
+    transition: border-color 0.25s, background 0.25s, transform 0.2s;
+    text-decoration: none; display: block;
+  }
+  .card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: transparent; transition: background 0.25s; }
+  .card:hover { background: rgba(255,255,255,0.055); transform: translateY(-3px); }
+  .card:hover::before { background: rgba(40,80,200,0.7); }
+  .card.primary { border-color: rgba(50,205,50,0.2); }
+  .card.primary:hover { border-color: rgba(50,205,50,0.5); }
+  .card.primary:hover::before { background: var(--lime); }
+
+  .card-corner { position: absolute; top: 0; right: 0; width: 0; height: 0; border-style: solid; border-width: 0 32px 32px 0; border-color: transparent rgba(20,40,120,0.15) transparent transparent; transition: border-color 0.25s; }
+  .card:hover .card-corner { border-color: transparent rgba(40,80,200,0.35) transparent transparent; }
+  .card.primary .card-corner { border-color: transparent rgba(50,205,50,0.15) transparent transparent; }
+  .card.primary:hover .card-corner { border-color: transparent rgba(50,205,50,0.4) transparent transparent; }
+
+  .card-num { font-family: 'DM Mono', monospace; font-size: 9px; letter-spacing: 3px; color: rgba(232,221,208,0.2); margin-bottom: 16px; }
+  .card-icon { width: 36px; height: 36px; border-radius: 4px; display: flex; align-items: center; justify-content: center; margin-bottom: 16px; }
+  .icon-green { background: rgba(50,205,50,0.1); border: 1px solid rgba(50,205,50,0.2); }
+  .icon-red   { background: rgba(20,40,120,0.15); border: 1px solid rgba(30,60,180,0.28); }
+
+  .card-title { font-family: 'Bebas Neue', sans-serif; font-size: 22px; letter-spacing: 1px; color: var(--white); margin-bottom: 8px; line-height: 1.1; }
+  .card-desc { font-size: 12px; line-height: 1.65; color: rgba(232,221,208,0.38); margin-bottom: 20px; }
+
+  .preview { border-top: 1px solid rgba(255,255,255,0.05); padding-top: 16px; }
+  .rec-rows { display: flex; flex-direction: column; gap: 6px; }
+  .rec-row { display: flex; align-items: center; justify-content: space-between; padding: 6px 10px; background: rgba(255,255,255,0.025); border: 1px solid rgba(255,255,255,0.04); border-radius: 3px; }
+  .rec-name { font-size: 11px; color: rgba(255,255,255,0.45); }
+  .rec-score { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--lime); }
+
+  .bar-rows { display: flex; flex-direction: column; gap: 7px; }
+  .bar-row { display: flex; align-items: center; gap: 8px; }
+  .bar-label { font-family: 'DM Mono', monospace; font-size: 9px; color: rgba(232,221,208,0.3); width: 68px; text-align: right; flex-shrink: 0; }
+  .bar-track { flex: 1; height: 4px; background: rgba(255,255,255,0.04); border-radius: 2px; overflow: hidden; }
+  .bar-fill { height: 4px; border-radius: 2px; background: rgba(40,100,220,0.65); }
+
+  .card-cta { display: flex; align-items: center; gap: 6px; font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 1px; margin-top: 16px; transition: gap 0.2s; }
+  .card.primary .card-cta { color: rgba(50,205,50,0.55); }
+  .card:not(.primary) .card-cta { color: rgba(80,140,255,0.55); }
+  .card:hover .card-cta { gap: 10px; }
+  .card.primary:hover .card-cta { color: rgba(50,205,50,0.9); }
+  .card:not(.primary):hover .card-cta { color: rgba(100,160,255,0.9); }
+
+  @keyframes fadeDown { from { opacity: 0; transform: translateY(-12px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes fadeUp   { from { opacity: 0; transform: translateY(16px);  } to { opacity: 1; transform: translateY(0); } }
+  @keyframes pulse    { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(0.7); } }
+
+  @media (max-width: 900px) {
+    .cards { grid-template-columns: 1fr; padding: 0 20px 40px; }
+    .hero  { padding: 40px 20px 30px; }
+    .topbar { padding: 16px 20px; }
+    .divider { padding: 0 20px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="bg">
+  <div class="bg-noise"></div>
+  <div class="bg-grid"></div>
+  <div class="bg-glow-top"></div>
+  <div class="bg-glow-left"></div>
+  <div class="bg-glow-right"></div>
+</div>
+
+<div class="page">
+
+  <header class="topbar">
+    <div class="logo">SCOUT<span> ENGINE</span></div>
+    <div class="topbar-right">
+      <span class="season-badge">2023 / 24</span>
+      <div class="dot"></div>
+    </div>
+  </header>
+
+  <section class="hero">
+    <div class="hero-eyebrow">ML-POWERED FORWARD SCOUTING · TOP-5 EUROPEAN LEAGUES</div>
+    <h1 class="hero-title">
+      FIND THE<br>
+      <span class="accent">PERFECT</span><br>
+      <span class="dim">FORWARD</span>
+    </h1>
+    <p class="hero-desc">
+      Data-driven transfer recommendations for 17 elite clubs — using cosine similarity,
+      K-Means clustering, and per-90 feature engineering across 206 eligible forwards.
+    </p>
+    <div class="hero-pills">
+      <span class="pill">385 PLAYERS</span>
+      <span class="pill">5 CLUSTERS</span>
+      <span class="pill">9 FEATURES</span>
+      <span class="pill">17 CLUBS PROFILED</span>
+      <span class="pill">AGE ≤ 27</span>
+      <span class="pill">≥ 900 MINS</span>
+    </div>
+  </section>
+
+  <div class="divider">
+    <div class="divider-line"></div>
+    <span class="divider-label">EXPLORE</span>
+    <div class="divider-line"></div>
+  </div>
+
+  <main class="cards">
+
+    <a class="card primary" href="recommendations.html">
+      <div class="card-corner"></div>
+      <div class="card-num">01 / 03</div>
+      <div class="card-icon icon-green">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+          <circle cx="9" cy="9" r="7.5" stroke="#32CD32" stroke-width="1.2"/>
+          <path d="M5.5 9l2.5 2.5 4.5-5" stroke="#32CD32" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div class="card-title">Player<br>Recommendations</div>
+      <div class="card-desc">Select any of the 17 elite clubs and get the top-3 best-fit forward targets ranked by cosine similarity fit score.</div>
+      <div class="preview">
+        <div class="rec-rows">
+          <div class="rec-row"><span class="rec-name">Julian Alvarez · ST · 24</span><span class="rec-score">92.4%</span></div>
+          <div class="rec-row"><span class="rec-name">Ollie Watkins · ST · 28</span><span class="rec-score">89.7%</span></div>
+          <div class="rec-row"><span class="rec-name">Lautaro Martinez · ST · 26</span><span class="rec-score">87.1%</span></div>
+        </div>
+      </div>
+      <div class="card-cta"><span>OPEN DASHBOARD</span><span>→</span></div>
+    </a>
+
+    <a class="card" href="top10score.html">
+      <div class="card-corner"></div>
+      <div class="card-num">02 / 03</div>
+      <div class="card-icon icon-red">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+          <rect x="2"  y="8"  width="3" height="8"  rx="1" fill="rgba(80,130,255,0.9)"/>
+          <rect x="7"  y="5"  width="3" height="11" rx="1" fill="rgba(80,130,255,0.7)"/>
+          <rect x="12" y="2"  width="3" height="14" rx="1" fill="rgba(80,130,255,0.5)"/>
+        </svg>
+      </div>
+      <div class="card-title">Top 10<br>Goal Scorers</div>
+      <div class="card-desc">Horizontal bar chart of the highest goals-per-90 forwards in the dataset. The most lethal finishers across all five leagues.</div>
+      <div class="preview">
+        <div class="bar-rows">
+          <div class="bar-row"><span class="bar-label">Haaland</span><div class="bar-track"><div class="bar-fill" style="width:95%"></div></div></div>
+          <div class="bar-row"><span class="bar-label">Kane</span><div class="bar-track"><div class="bar-fill" style="width:82%"></div></div></div>
+          <div class="bar-row"><span class="bar-label">Mbappe</span><div class="bar-track"><div class="bar-fill" style="width:77%"></div></div></div>
+          <div class="bar-row"><span class="bar-label">Osimhen</span><div class="bar-track"><div class="bar-fill" style="width:71%"></div></div></div>
+          <div class="bar-row"><span class="bar-label">Lukaku</span><div class="bar-track"><div class="bar-fill" style="width:64%"></div></div></div>
+        </div>
+      </div>
+      <div class="card-cta"><span>VIEW CHART</span><span>→</span></div>
+    </a>
+
+    <a class="card" href="clinical.html">
+      <div class="card-corner"></div>
+      <div class="card-num">03 / 03</div>
+      <div class="card-icon icon-red">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+          <circle cx="9" cy="9" r="7" stroke="rgba(80,130,255,0.8)" stroke-width="1"/>
+          <circle cx="9" cy="9" r="3" stroke="rgba(80,130,255,0.9)" stroke-width="1"/>
+          <line x1="9" y1="2"  x2="9" y2="5"  stroke="rgba(80,130,255,0.7)" stroke-width="1.2"/>
+          <line x1="9" y1="13" x2="9" y2="16" stroke="rgba(80,130,255,0.7)" stroke-width="1.2"/>
+          <line x1="2"  y1="9" x2="5"  y2="9" stroke="rgba(80,130,255,0.7)" stroke-width="1.2"/>
+          <line x1="13" y1="9" x2="16" y2="9" stroke="rgba(80,130,255,0.7)" stroke-width="1.2"/>
+        </svg>
+      </div>
+      <div class="card-title">Most Clinical<br>Strikers</div>
+      <div class="card-desc">Goals minus xG per 90 — reveals who consistently outperforms expected goals. The cold-blooded finishers that beat the model.</div>
+      <div class="preview">
+        <div class="bar-rows">
+          <div class="bar-row"><span class="bar-label">Giroud</span><div class="bar-track"><div class="bar-fill" style="width:90%"></div></div></div>
+          <div class="bar-row"><span class="bar-label">Benzema</span><div class="bar-track"><div class="bar-fill" style="width:78%"></div></div></div>
+          <div class="bar-row"><span class="bar-label">Haaland</span><div class="bar-track"><div class="bar-fill" style="width:72%"></div></div></div>
+          <div class="bar-row"><span class="bar-label">Firmino</span><div class="bar-track"><div class="bar-fill" style="width:63%"></div></div></div>
+          <div class="bar-row"><span class="bar-label">Vlahovic</span><div class="bar-track"><div class="bar-fill" style="width:55%"></div></div></div>
+        </div>
+      </div>
+      <div class="card-cta"><span>VIEW CHART</span><span>→</span></div>
+    </a>
+
+  </main>
+
+</div>
+
+</body>
+</html>
